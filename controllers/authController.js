@@ -2,40 +2,66 @@ const db = require('../config/db');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { v4: uuidv4 } = require('uuid');
 
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
+  try {
     const { email, password } = req.body;
 
-    const sql = `SELECT id, email, password, role FROM employees WHERE email = ?;
-`;
+    if (!req.file) {
+      return res.status(400).json({ error: 'Login photo is required' });
+    }
+
+    const sql = `
+      SELECT id, email, password, role
+      FROM employees
+      WHERE email = ?
+      LIMIT 1
+    `;
 
     db.query(sql, [email], async (err, result) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
 
-        if (result.length === 0) {
-            return res.status(401).json({ error: 'Invalid email or password', err: err });
+      if (result.length === 0) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      const user = result[0];
+      const isMatch = await comparePassword(password, user.password);
+
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      // ✅ SAVE PHOTO PATH
+      const photoPath = `/uploads/login/${req.file.filename}`;
+
+      db.query(
+        'UPDATE employees SET login_photo = ? WHERE id = ?',
+        [photoPath, user.id]
+      );
+
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        },
+        employee: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          login_photo: photoPath
         }
-
-        const user = result[0];
-        const isMatch = await comparePassword(password, user.password);
-
-        if (!isMatch) {
-            return res.status(401).json({ error: 'Invalid email or password' });
-        }
-
-        res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role
-            },
-            employee: {
-                id: user.id,
-                email: user.email,
-                role: user.role
-            }
-        });
+      });
     });
+
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed' });
+  }
 };
+
+  
 
 /* ================= REGISTER ================= */
 exports.register = async (req, res) => {

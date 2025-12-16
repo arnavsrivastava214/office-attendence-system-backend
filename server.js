@@ -2,10 +2,39 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
 
+// ================= MULTER CONFIG =================
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/login');
+  },
+  filename: (req, file, cb) => {
+    const uniqueName =
+      Date.now() +
+      '-' +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  }
+});
+
+// ================= AUTH MIDDLEWARE =================
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
 
-// Controllers
+// ================= CONTROLLERS =================
 const {
   login,
   register,
@@ -29,16 +58,20 @@ const {
   remove
 } = require('./controllers/employeeController');
 
-// ✅ CREATE APP FIRST
+// ================= CREATE APP =================
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ MIDDLEWARE
+// ================= GLOBAL MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// ================= AUTH =================
-app.post('/api/login', login);
+// 🔥 SERVE UPLOADED IMAGES
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ================= AUTH ROUTES =================
+app.post('/api/login', upload.single('photo'), login);
 app.post('/api/register', register);
 app.post('/api/logout', logout);
 
@@ -62,12 +95,10 @@ app.get(
   employeeRecords
 );
 
-// ================= ROOT =================
 app.get('/', (req, res) => {
   res.json({ message: 'Office Attendance API running' });
 });
 
-// ✅ START SERVER LAST
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
