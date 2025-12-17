@@ -116,8 +116,54 @@ exports.register = async (req, res) => {
     }
 };
 
-/* ================= LOGOUT ================= */
 exports.logout = (req, res) => {
-    // No backend logout needed (same as Supabase)
     res.json({ message: 'Logged out successfully' });
 };
+
+exports.adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const sql = `
+      SELECT id, email, password, role
+      FROM employees
+      WHERE email = ?
+      LIMIT 1
+    `;
+
+    db.query(sql, [email], async (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (result.length === 0) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      const admin = result[0];
+
+      const isMatch = await comparePassword(password, admin.password);
+
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      res.status(200).json({
+        user: {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role
+        }
+      });
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: 'Admin login failed' });
+  }
+};
+
+

@@ -38,6 +38,7 @@ const { authenticateToken, requireAdmin } = require('./middleware/auth');
 const {
   login,
   register,
+  adminLogin,
   logout
 } = require('./controllers/authController');
 
@@ -73,6 +74,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ================= AUTH ROUTES =================
 app.post('/api/login', upload.single('photo'), login);
 app.post('/api/register', register);
+app.post('/api/admin/login', adminLogin);
 app.post('/api/logout', logout);
 
 // ================= EMPLOYEES =================
