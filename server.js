@@ -39,7 +39,8 @@ const {
   login,
   register,
   adminLogin,
-  logout
+  logout,
+  getLoginLocations
 } = require('./controllers/authController');
 
 const {
@@ -76,6 +77,8 @@ app.post('/api/login', upload.single('photo'), login);
 app.post('/api/register', register);
 app.post('/api/admin/login', adminLogin);
 app.post('/api/logout', logout);
+app.get('/api/employees/:id/login-locations', getLoginLocations);
+
 
 // ================= EMPLOYEES =================
 app.get('/api/employees/me', authenticateToken, me);

@@ -1,10 +1,12 @@
 const db = require('../config/db');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
+
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, latitude, longitude, accuracy } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ error: 'Login photo is required' });
@@ -33,14 +35,58 @@ exports.login = async (req, res) => {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      // ✅ SAVE PHOTO PATH
       const photoPath = `/uploads/login/${req.file.filename}`;
 
-      db.query(
-        'UPDATE employees SET login_photo = ? WHERE id = ?',
-        [photoPath, user.id]
-      );
+      let locationName = null;
 
+      if (latitude && longitude) {
+        try {
+          const geoRes = await axios.get(
+            'https://nominatim.openstreetmap.org/reverse',
+            {
+              params: {
+                format: 'json',
+                lat: latitude,
+                lon: longitude
+              },
+              headers: {
+                'User-Agent': 'OfficeAttendanceSystem/1.0'
+              }
+            }
+          );
+
+          locationName = geoRes.data.display_name;
+        } catch (geoErr) {
+          console.error('Reverse geocode failed:', geoErr.message);
+        }
+      }
+      db.query(
+        `
+        UPDATE employees
+        SET 
+          login_photo = ?,
+          login_locations = JSON_ARRAY_APPEND(
+            IFNULL(login_locations, JSON_ARRAY()),
+            '$',
+            JSON_OBJECT(
+              'latitude', ?,
+              'longitude', ?,
+              'accuracy', ?,
+              'location', ?,
+              'time', NOW()
+            )
+          )
+        WHERE id = ?
+        `,
+        [
+          photoPath,
+          latitude || null,
+          longitude || null,
+          accuracy || null,
+          locationName,
+          user.id
+        ]
+      );
       res.json({
         user: {
           id: user.id,
@@ -52,6 +98,12 @@ exports.login = async (req, res) => {
           email: user.email,
           role: user.role,
           login_photo: photoPath
+        },
+        login_location: {
+          latitude,
+          longitude,
+          accuracy,
+          location: locationName
         }
       });
     });
@@ -61,63 +113,65 @@ exports.login = async (req, res) => {
   }
 };
 
-  
+
+
+
 
 /* ================= REGISTER ================= */
 exports.register = async (req, res) => {
-    try {
-        const {
-            email,
-            password,
-            full_name,
-            role,
-            phone,
-            department,
-            position
-        } = req.body;
+  try {
+    const {
+      email,
+      password,
+      full_name,
+      role,
+      phone,
+      department,
+      position
+    } = req.body;
 
-        const hashedPassword = await hashPassword(password);
-        const id = uuidv4();
+    const hashedPassword = await hashPassword(password);
+    const id = uuidv4();
 
-        const sql = `
+    const sql = `
       INSERT INTO employees
       (id, email, password, full_name, role, phone, department, position)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-        db.query(
-            sql,
-            [
-                id,
-                email,
-                hashedPassword,
-                full_name,
-                role || 'employee',
-                phone,
-                department,
-                position
-            ],
-            (err) => {
-                if (err) {
-                    if (err.code === 'ER_DUP_ENTRY') {
-                        return res.status(400).json({ error: 'Email already exists' });
-                    }
-                    return res.status(500).json({ error: 'Registration failed' });
-                }
+    db.query(
+      sql,
+      [
+        id,
+        email,
+        hashedPassword,
+        full_name,
+        role || 'employee',
+        phone,
+        department,
+        position
+      ],
+      (err) => {
+        if (err) {
+          if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: 'Email already exists' });
+          }
+          return res.status(500).json({ error: 'Registration failed' });
+        }
 
-                res.status(201).json({
-                    message: 'Employee registered successfully',
-                    user: { id, email }
-                });
-            }
-        );
-    } catch {
-        res.status(500).json({ error: 'Registration failed' });
-    }
+        res.status(201).json({
+          message: 'Employee registered successfully',
+          user: { id, email }
+        });
+      }
+    );
+  } catch {
+    res.status(500).json({ error: 'Registration failed' });
+  }
 };
 
 exports.logout = (req, res) => {
-    res.json({ message: 'Logged out successfully' });
+  res.json({ message: 'Logged out successfully' });
 };
 
 exports.adminLogin = async (req, res) => {
@@ -165,5 +219,28 @@ exports.adminLogin = async (req, res) => {
     res.status(500).json({ error: 'Admin login failed' });
   }
 };
+
+exports.getLoginLocations = (req, res) => {
+  const { id } = req.params;
+
+  db.query(
+    `SELECT login_locations FROM employees WHERE id = ?`,
+    [id],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Employee not found' });
+      }
+
+      res.json({
+        login_locations: result[0].login_locations || []
+      });
+    }
+  );
+};
+
 
 
