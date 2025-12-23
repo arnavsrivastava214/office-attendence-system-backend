@@ -1,11 +1,20 @@
-require('dotenv').config();
-
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 
 // ================= MULTER CONFIG =================
+
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, 'uploads/login');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/login');
