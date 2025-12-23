@@ -1,8 +1,19 @@
-const db = require('../config/db');
-const { hashPassword, comparePassword } = require('../utils/password');
-const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
+const cloudinary = require('../config/cloudinary');
+const db = require('../config/db');
+const { comparePassword } = require('../utils/password');
 
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder: 'office_attendance/login' },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    ).end(buffer);
+  });
+};
 
 exports.login = async (req, res) => {
   try {
@@ -21,7 +32,7 @@ exports.login = async (req, res) => {
 
     db.query(sql, [email], async (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Database error' , err: err });
+        return res.status(500).json({ error: 'Database error', err });
       }
 
       if (result.length === 0) {
@@ -35,7 +46,9 @@ exports.login = async (req, res) => {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      const photoPath = `/uploads/login/${req.file.filename}`;
+      // 🔥 UPLOAD IMAGE TO CLOUDINARY
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      const photoUrl = uploadResult.secure_url; // ✅ THIS IS WHAT WE STORE
 
       let locationName = null;
 
@@ -54,12 +67,12 @@ exports.login = async (req, res) => {
               }
             }
           );
-
           locationName = geoRes.data.display_name;
         } catch (geoErr) {
           console.error('Reverse geocode failed:', geoErr.message);
         }
       }
+
       db.query(
         `
         UPDATE employees
@@ -79,7 +92,7 @@ exports.login = async (req, res) => {
         WHERE id = ?
         `,
         [
-          photoPath,
+          photoUrl,
           latitude || null,
           longitude || null,
           accuracy || null,
@@ -87,6 +100,7 @@ exports.login = async (req, res) => {
           user.id
         ]
       );
+
       res.json({
         user: {
           id: user.id,
@@ -97,7 +111,7 @@ exports.login = async (req, res) => {
           id: user.id,
           email: user.email,
           role: user.role,
-          login_photo: photoPath
+          login_photo: photoUrl
         },
         login_location: {
           latitude,
@@ -107,11 +121,12 @@ exports.login = async (req, res) => {
         }
       });
     });
-
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Login failed' });
   }
 };
+
 
 
 

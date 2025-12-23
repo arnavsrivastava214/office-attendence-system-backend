@@ -4,43 +4,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
-// 🔥 ENSURE UPLOAD DIRECTORY EXISTS
-const uploadDir = path.join(__dirname, 'uploads', 'login');
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// ================= MULTER CONFIG =================
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); // ✅ FIXED
-  },
-  filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() +
-      '-' +
-      Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
-    cb(null, uniqueName);
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Only image files are allowed'));
-    }
-    cb(null, true);
-  }
-});
-
+// 🔥 USE MULTER FROM MIDDLEWARE (MEMORY STORAGE)
+const upload = require('./middleware/upload');
 
 // ================= AUTH MIDDLEWARE =================
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
@@ -76,12 +42,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ================= GLOBAL MIDDLEWARE =================
-app.use(cors());
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// 🔥 SERVE UPLOADED IMAGES
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ================= AUTH ROUTES =================
 app.post('/api/login', upload.single('photo'), login);
@@ -89,7 +52,6 @@ app.post('/api/register', register);
 app.post('/api/admin/login', adminLogin);
 app.post('/api/logout', logout);
 app.get('/api/employees/:id/login-locations', getLoginLocations);
-
 
 // ================= EMPLOYEES =================
 app.get('/api/employees/me', authenticateToken, me);
@@ -111,10 +73,12 @@ app.get(
   employeeRecords
 );
 
+// ================= HEALTH CHECK =================
 app.get('/', (req, res) => {
   res.json({ message: 'Office Attendance API running' });
 });
 
+// ================= START SERVER =================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
