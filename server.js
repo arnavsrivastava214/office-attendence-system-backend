@@ -5,13 +5,10 @@ if (process.env.NODE_ENV !== 'production') {
 const express = require('express');
 const cors = require('cors');
 
-// 🔥 USE MULTER FROM MIDDLEWARE (MEMORY STORAGE)
 const upload = require('./middleware/upload');
 
-// ================= AUTH MIDDLEWARE =================
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
 
-// ================= CONTROLLERS =================
 const {
   login,
   register,
