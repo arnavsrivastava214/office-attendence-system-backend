@@ -51,7 +51,7 @@ app.post('/api/logout', logout);
 app.get('/api/employees/:id/login-locations', getLoginLocations);
 
 /// ================= EMPLOYEES =================
-app.get('/api/employees/me', authenticateToken, me);
+app.get('/api/me', authenticateToken, me);           
 app.get('/api/employees', authenticateToken, requireAdmin, getAll);
 app.get('/api/employees/:id', authenticateToken, requireAdmin, getById);
 app.put('/api/employees/:id', authenticateToken, requireAdmin, update);
