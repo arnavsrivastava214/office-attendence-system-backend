@@ -21,7 +21,7 @@ exports.login = async (req, res) => {
 
     db.query(sql, [email], async (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error' , err: err });
       }
 
       if (result.length === 0) {
@@ -191,7 +191,7 @@ exports.adminLogin = async (req, res) => {
 
     db.query(sql, [email], async (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error' , err: err});
       }
 
       if (result.length === 0) {
@@ -228,7 +228,7 @@ exports.getLoginLocations = (req, res) => {
     [id],
     (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error' , err: err });
       }
 
       if (result.length === 0) {
