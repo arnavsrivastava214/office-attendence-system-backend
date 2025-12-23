@@ -42,19 +42,32 @@ exports.clockIn = (req, res) => {
     LIMIT 1
   `;
 
-  db.query(insertSql, [req.user.id], (err, result) => {
-    if (err) {
-      console.error('CLOCK-IN INSERT ERROR:', err);
-      return res.status(500).json({ error: 'Failed to clock in' });
+  db.query(checkSql, [req.user.id], (err, active) => {
+    if (err) return res.status(500).json({ error: 'Clock-in check failed' });
+
+    if (active.length > 0) {
+      return res.status(400).json({ error: 'You are already clocked in' });
     }
-  
-    res.status(201).json({
-      id: result.insertId,
-      employee_id: req.user.id,
-      clock_in: new Date()
+
+    const insertSql = `
+      INSERT INTO clock_records (employee_id, clock_in)
+      VALUES (?, NOW())
+    `;
+
+    db.query(insertSql, [req.user.id], (err, result) => {
+      if (err) {
+        console.error('CLOCK-IN INSERT ERROR:', err);
+        return res.status(500).json({ error: 'Failed to clock in' });
+      }
+    
+      res.status(201).json({
+        id: result.insertId,
+        employee_id: req.user.id,
+        clock_in: new Date()
+      });
     });
+    
   });
-  
 };
 
 /* ================= CLOCK OUT ================= */
