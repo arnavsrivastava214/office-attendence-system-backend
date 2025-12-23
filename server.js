@@ -50,7 +50,7 @@ app.post('/api/admin/login', adminLogin);
 app.post('/api/logout', logout);
 app.get('/api/employees/:id/login-locations', getLoginLocations);
 
-// ================= EMPLOYEES =================
+/// ================= EMPLOYEES =================
 app.get('/api/employees/me', authenticateToken, me);
 app.get('/api/employees', authenticateToken, requireAdmin, getAll);
 app.get('/api/employees/:id', authenticateToken, requireAdmin, getById);
@@ -58,17 +58,14 @@ app.put('/api/employees/:id', authenticateToken, requireAdmin, update);
 app.delete('/api/employees/:id', authenticateToken, requireAdmin, remove);
 
 // ================= CLOCK RECORDS =================
-app.get('/api/clock-records/my-records', authenticateToken, myRecords);
-app.get('/api/clock-records/active', authenticateToken, activeRecord);
-app.post('/api/clock-records/clock-in', authenticateToken, clockIn);
-app.post('/api/clock-records/clock-out', authenticateToken, clockOut);
-app.get('/api/clock-records/all', authenticateToken, requireAdmin, allRecords);
-app.get(
-  '/api/clock-records/employee/:employeeId',
-  authenticateToken,
-  requireAdmin,
-  employeeRecords
-);
+app.get('/api/my-records', authenticateToken, myRecords);
+app.get('/api/active', authenticateToken, activeRecord);
+app.post('/api/clock-in', authenticateToken, clockIn);
+app.post('/api/clock-out', authenticateToken, clockOut);
+app.get('/api/all', authenticateToken, requireAdmin, allRecords);
+app.get('/api/employee/:employeeId', authenticateToken, requireAdmin, employeeRecords);
+
+
 
 // ================= HEALTH CHECK =================
 app.get('/', (req, res) => {
