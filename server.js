@@ -1,20 +1,24 @@
+if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// 🔥 ENSURE UPLOAD DIRECTORY EXISTS
 const uploadDir = path.join(__dirname, 'uploads', 'login');
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-
+// ================= MULTER CONFIG =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/login');
+    cb(null, uploadDir); // ✅ FIXED
   },
   filename: (req, file, cb) => {
     const uniqueName =
@@ -28,7 +32,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed'));
@@ -36,6 +40,7 @@ const upload = multer({
     cb(null, true);
   }
 });
+
 
 // ================= AUTH MIDDLEWARE =================
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
