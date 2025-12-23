@@ -57,7 +57,7 @@ exports.clockIn = (req, res) => {
     db.query(insertSql, [req.user.id], (err, result) => {
       if (err) {
         console.error('CLOCK-IN INSERT ERROR:', err);
-        return res.status(500).json({ error: 'Failed to clock in' });
+        return res.status(500).json({ error: 'Failed to clock in', err:err });
       }
     
       res.status(201).json({
