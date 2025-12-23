@@ -5,9 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-
-// ================= MULTER CONFIG =================
-
+const fs = require('fs');
 
 const uploadDir = path.join(__dirname, 'uploads', 'login');
 
