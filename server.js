@@ -52,10 +52,11 @@ app.get('/api/employees/:id/login-locations', getLoginLocations);
 
 /// ================= EMPLOYEES =================
 app.get('/api/me', authenticateToken, me);           
-app.get('/api', authenticateToken, requireAdmin, getAll);
-app.get('/api/:id', authenticateToken, requireAdmin, getById);
-app.put('/api/:id', authenticateToken, requireAdmin, update);
-app.delete('/api/:id', authenticateToken, requireAdmin, remove);
+app.get('/api/employees', authenticateToken, requireAdmin, getAll);
+app.get('/api/employees/:id', authenticateToken, requireAdmin, getById);
+app.put('/api/employees/:id', authenticateToken, requireAdmin, update);
+app.delete('/api/employees/:id', authenticateToken, requireAdmin, remove);
+
 
 // ================= CLOCK RECORDS =================
 app.get('/api/my-records', authenticateToken, myRecords);
