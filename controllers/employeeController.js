@@ -53,8 +53,14 @@ exports.update = (req, res) => {
     sql,
     [full_name, phone, department, position, role, req.params.id],
     (err) => {
-      if (err) return res.status(500).json({ error: 'Failed to update employee' });
-
+      if (err) {
+        console.error('UPDATE EMPLOYEE ERROR:', err);
+        return res.status(500).json({
+          error: 'Failed to update employee',
+          details: err.sqlMessage || err.message
+        });
+      }
+      
       res.json({
         message: 'Employee updated successfully'
       });
