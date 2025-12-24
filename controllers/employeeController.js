@@ -41,29 +41,34 @@ exports.getById = (req, res) => {
 
 /* ================= UPDATE EMPLOYEE (ADMIN) ================= */
 exports.update = (req, res) => {
-  const { full_name, phone, department, position, role } = req.body;
+  const {
+    full_name = null,
+    phone = null,
+    department = null,
+    position = null,
+    role = 'employee'
+  } = req.body;
 
   const sql = `
     UPDATE employees
-    SET full_name = ?, phone = ?, department = ?, position = ?, role = ?, updated_at = NOW()
-    WHERE id = ?
+    SET full_name=?, phone=?, department=?, position=?, role=?
+    WHERE id=?
   `;
 
   db.query(
     sql,
     [full_name, phone, department, position, role, req.params.id],
-    (err) => {
+    (err, result) => {
       if (err) {
-        console.error('UPDATE EMPLOYEE ERROR:', err);
-        return res.status(500).json({
-          error: 'Failed to update employee',
-          details: err.sqlMessage || err.message
-        });
+        console.error(err);
+        return res.status(500).json({ error: 'Failed to update employee' });
       }
-      
-      res.json({
-        message: 'Employee updated successfully'
-      });
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Employee not found' });
+      }
+
+      res.json({ message: 'Employee updated successfully' });
     }
   );
 };
