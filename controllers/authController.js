@@ -2,6 +2,8 @@ const axios = require('axios');
 const cloudinary = require('../config/cloudinary');
 const db = require('../config/db');
 const { comparePassword } = require('../utils/password');
+const bcrypt = require('bcrypt');
+
 
 const uploadToCloudinary = (buffer) => {
   return new Promise((resolve, reject) => {
@@ -145,7 +147,11 @@ exports.register = async (req, res) => {
       position
     } = req.body;
 
-    const hashedPassword = await hashPassword(password);
+    if (!email || !password || !full_name) {
+      return res.status(400).json({ error: 'Required fields missing' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const sql = `
       INSERT INTO employees
@@ -160,16 +166,18 @@ exports.register = async (req, res) => {
         hashedPassword,
         full_name,
         role || 'employee',
-        phone,
-        department,
-        position
+        phone || null,
+        department || null,
+        position || null
       ],
       (err, result) => {
         if (err) {
-          console.error(err);
+          console.error('REGISTER ERROR:', err.sqlMessage);
+
           if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ error: 'Email already exists' });
           }
+
           return res.status(500).json({
             error: 'Registration failed',
             details: err.sqlMessage
@@ -187,7 +195,7 @@ exports.register = async (req, res) => {
     );
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Registration failed', err:err });
+    res.status(500).json({ error: 'Registration failed' });
   }
 };
 
