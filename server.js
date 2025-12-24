@@ -51,11 +51,15 @@ app.post('/api/logout', logout);
 app.get('/api/employees/:id/login-locations', getLoginLocations);
 
 /// ================= EMPLOYEES =================
-app.get('/api/me', authenticateToken, me);           
+// EMPLOYEES
 app.get('/api/employees', authenticateToken, requireAdmin, getAll);
 app.get('/api/employees/:id', authenticateToken, requireAdmin, getById);
 app.put('/api/employees/:id', authenticateToken, requireAdmin, update);
 app.delete('/api/employees/:id', authenticateToken, requireAdmin, remove);
+
+// PROFILE
+app.get('/api/me', authenticateToken, me);
+
 
 
 // ================= CLOCK RECORDS =================
