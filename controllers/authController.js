@@ -146,18 +146,16 @@ exports.register = async (req, res) => {
     } = req.body;
 
     const hashedPassword = await hashPassword(password);
-    const id = uuidv4();
 
     const sql = `
       INSERT INTO employees
-      (id, email, password, full_name, role, phone, department, position)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (email, password, full_name, role, phone, department, position)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.query(
       sql,
       [
-        id,
         email,
         hashedPassword,
         full_name,
@@ -166,24 +164,33 @@ exports.register = async (req, res) => {
         department,
         position
       ],
-      (err) => {
+      (err, result) => {
         if (err) {
+          console.error(err);
           if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ error: 'Email already exists' });
           }
-          return res.status(500).json({ error: 'Registration failed' });
+          return res.status(500).json({
+            error: 'Registration failed',
+            details: err.sqlMessage
+          });
         }
 
         res.status(201).json({
           message: 'Employee registered successfully',
-          user: { id, email }
+          user: {
+            id: result.insertId,
+            email
+          }
         });
       }
     );
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Registration failed' });
   }
 };
+
 
 exports.logout = (req, res) => {
   res.json({ message: 'Logged out successfully' });
