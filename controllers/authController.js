@@ -3,6 +3,8 @@ const cloudinary = require('../config/cloudinary');
 const db = require('../config/db');
 const { comparePassword } = require('../utils/password');
 const bcrypt = require('bcrypt');
+const { v4: uuidv4 } = require('uuid');
+
 
 
 const uploadToCloudinary = (buffer) => {
@@ -147,49 +149,37 @@ exports.register = async (req, res) => {
       position
     } = req.body;
 
-    if (!email || !password || !full_name) {
-      return res.status(400).json({ error: 'Required fields missing' });
-    }
+    const hashedPassword = await hashPassword(password);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const id = uuidv4(); // 🔥 GUARANTEED UNIQUE
 
     const sql = `
       INSERT INTO employees
-      (email, password, full_name, role, phone, department, position)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (id, email, password, full_name, role, phone, department, position)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.query(
       sql,
       [
+        id,
         email,
         hashedPassword,
         full_name,
         role || 'employee',
-        phone || null,
-        department || null,
-        position || null
+        phone,
+        department,
+        position
       ],
-      (err, result) => {
+      (err) => {
         if (err) {
-          console.error('REGISTER ERROR:', err.sqlMessage);
-
-          if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'Email already exists' });
-          }
-
-          return res.status(500).json({
-            error: 'Registration failed',
-            details: err.sqlMessage
-          });
+          console.error(err);
+          return res.status(500).json({ error: 'Registration failed' });
         }
 
         res.status(201).json({
           message: 'Employee registered successfully',
-          user: {
-            id: result.insertId,
-            email
-          }
+          user: { id, email }
         });
       }
     );
