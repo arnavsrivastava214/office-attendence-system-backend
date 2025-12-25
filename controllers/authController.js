@@ -149,9 +149,12 @@ exports.register = async (req, res) => {
       position
     } = req.body;
 
-    const hashedPassword = await hashPassword(password);
+    if (!email || !password || !full_name) {
+      return res.status(400).json({ error: 'Required fields missing' });
+    }
 
-    const id = uuidv4(); // 🔥 GUARANTEED UNIQUE
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const id = uuidv4(); // 🔥 ID GENERATED HERE
 
     const sql = `
       INSERT INTO employees
@@ -167,13 +170,18 @@ exports.register = async (req, res) => {
         hashedPassword,
         full_name,
         role || 'employee',
-        phone,
-        department,
-        position
+        phone || null,
+        department || null,
+        position || null
       ],
       (err) => {
         if (err) {
-          console.error(err);
+          console.error('REGISTER ERROR:', err.sqlMessage);
+
+          if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: 'Email already exists' });
+          }
+
           return res.status(500).json({ error: 'Registration failed' });
         }
 
@@ -184,11 +192,9 @@ exports.register = async (req, res) => {
       }
     );
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Registration failed' });
   }
 };
-
 
 exports.logout = (req, res) => {
   res.json({ message: 'Logged out successfully' });
